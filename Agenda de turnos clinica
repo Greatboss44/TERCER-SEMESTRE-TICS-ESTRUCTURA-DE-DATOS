@@ -1,0 +1,309 @@
+using System;
+
+namespace AgendaTurnosClinica
+{
+    // ESTRUCTURA DE DATOS DEL PACIENTE
+    public class Paciente
+    {
+        public string Cedula;
+        public string Nombre;
+        public int Edad;
+
+        public Paciente(string cedula, string nombre, int edad)
+        {
+            Cedula = cedula;
+            Nombre = nombre;
+            Edad = edad;
+        }
+    }
+
+    // CLASE TURNO (reemplaza al record para mayor compatibilidad)
+    public class Turno
+    {
+        public Paciente Paciente;
+        public int Dia;
+        public int Franja;
+        public string Especialidad;
+
+        public Turno(Paciente paciente, int dia, int franja, string especialidad)
+        {
+            Paciente = paciente;
+            Dia = dia;
+            Franja = franja;
+            Especialidad = especialidad;
+        }
+    }
+
+    // CLASE AGENDA
+    public class Agenda
+    {
+        // Arreglo para almacenar el historial de turnos
+        private Turno[] historial;
+        private int cantidad;
+
+        // Matriz de ocupación semanal
+        private bool[,] tablero;
+
+        private static readonly string[] Dias = new string[]
+        {
+            "Lunes",
+            "Martes",
+            "Miercoles",
+            "Jueves",
+            "Viernes"
+        };
+
+        private static readonly string[] Franjas = new string[]
+        {
+            "08:00",
+            "10:00",
+            "14:00",
+            "16:00"
+        };
+
+        public Agenda()
+        {
+            historial = new Turno[100];
+            cantidad = 0;
+            tablero = new bool[5, 4];
+        }
+
+        public int Cantidad
+        {
+            get { return cantidad; }
+        }
+
+        public bool AgendarTurno(Turno turno)
+        {
+            if (turno.Dia < 0 || turno.Dia > 4 ||
+                turno.Franja < 0 || turno.Franja > 3)
+            {
+                return false;
+            }
+
+            if (cantidad >= historial.Length)
+            {
+                return false;
+            }
+
+            if (tablero[turno.Dia, turno.Franja])
+            {
+                return false;
+            }
+
+            tablero[turno.Dia, turno.Franja] = true;
+            historial[cantidad] = turno;
+            cantidad++;
+
+            return true;
+        }
+
+        public void MostrarTablero()
+        {
+            Console.WriteLine();
+            Console.WriteLine("--- TABLERO SEMANAL DE OCUPACION ---");
+
+            Console.Write("Franja\t");
+
+            for (int d = 0; d < Dias.Length; d++)
+            {
+                Console.Write(Dias[d] + "\t");
+            }
+
+            Console.WriteLine();
+
+            for (int f = 0; f < Franjas.Length; f++)
+            {
+                Console.Write(Franjas[f] + "\t");
+
+                for (int d = 0; d < Dias.Length; d++)
+                {
+                    if (tablero[d, f])
+                        Console.Write("[X]\t");
+                    else
+                        Console.Write("[ ]\t");
+                }
+
+                Console.WriteLine();
+            }
+
+            Console.WriteLine("[X] = ocupado   [ ] = disponible");
+        }
+
+        public void ListarHistorial()
+        {
+            if (cantidad == 0)
+            {
+                Console.WriteLine("No hay turnos registrados.");
+                return;
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("--- HISTORIAL DE TURNOS ---");
+
+            for (int i = 0; i < cantidad; i++)
+            {
+                Turno t = historial[i];
+
+                Console.WriteLine(
+                    (i + 1) + ". " +
+                    Dias[t.Dia] + " " +
+                    Franjas[t.Franja] + " | " +
+                    t.Especialidad + " | " +
+                    t.Paciente.Nombre +
+                    " (CI: " + t.Paciente.Cedula +
+                    ", " + t.Paciente.Edad + " anios)"
+                );
+            }
+        }
+
+        public void BuscarPorCedula(string cedula)
+        {
+            bool encontrado = false;
+
+            for (int i = 0; i < cantidad; i++)
+            {
+                if (historial[i].Paciente.Cedula == cedula)
+                {
+                    Turno t = historial[i];
+
+                    Console.WriteLine(
+                        "-> " +
+                        Dias[t.Dia] + " " +
+                        Franjas[t.Franja] +
+                        " - " +
+                        t.Especialidad
+                    );
+
+                    encontrado = true;
+                }
+            }
+
+            if (!encontrado)
+            {
+                Console.WriteLine(
+                    "No se encontraron turnos para esa cedula."
+                );
+            }
+        }
+    }
+
+    class Program
+    {
+        static int LeerEntero(string mensaje)
+        {
+            int valor;
+
+            Console.Write(mensaje);
+
+            while (!int.TryParse(Console.ReadLine(), out valor))
+            {
+                Console.Write(
+                    "Entrada invalida, ingrese un numero. "
+                    + mensaje
+                );
+            }
+
+            return valor;
+        }
+
+        static string LeerTexto(string mensaje)
+        {
+            Console.Write(mensaje);
+
+            string texto = Console.ReadLine();
+
+            if (texto == null)
+                texto = "";
+
+            return texto;
+        }
+
+        static void Main(string[] args)
+        {
+            Agenda agenda = new Agenda();
+            int opcion;
+
+            do
+            {
+                Console.WriteLine();
+                Console.WriteLine(
+                    "===== AGENDA DE TURNOS - CLINICA ====="
+                );
+                Console.WriteLine("1. Agendar turno");
+                Console.WriteLine("2. Ver tablero semanal");
+                Console.WriteLine("3. Listar historial de turnos");
+                Console.WriteLine("4. Buscar turnos por cedula");
+                Console.WriteLine("5. Salir");
+
+                opcion = LeerEntero("Opcion: ");
+
+                if (opcion == 1)
+                {
+                    string ci = LeerTexto("Cedula: ");
+                    string nombre = LeerTexto("Nombre: ");
+                    int edad = LeerEntero("Edad: ");
+
+                    int dia = LeerEntero(
+                        "Dia (0=Lun, 1=Mar, 2=Mie, 3=Jue, 4=Vie): "
+                    );
+
+                    int franja = LeerEntero(
+                        "Franja (0=08:00, 1=10:00, 2=14:00, 3=16:00): "
+                    );
+
+                    string esp = LeerTexto("Especialidad: ");
+
+                    Paciente p = new Paciente(ci, nombre, edad);
+                    Turno turno = new Turno(
+                        p,
+                        dia,
+                        franja,
+                        esp
+                    );
+
+                    if (agenda.AgendarTurno(turno))
+                    {
+                        Console.WriteLine(
+                            "Turno agendado correctamente."
+                        );
+                    }
+                    else
+                    {
+                        Console.WriteLine(
+                            "No disponible: casilla ocupada o datos invalidos."
+                        );
+                    }
+                }
+                else if (opcion == 2)
+                {
+                    agenda.MostrarTablero();
+                }
+                else if (opcion == 3)
+                {
+                    agenda.ListarHistorial();
+                }
+                else if (opcion == 4)
+                {
+                    string buscar =
+                        LeerTexto("Cedula a buscar: ");
+
+                    agenda.BuscarPorCedula(buscar);
+                }
+                else if (opcion == 5)
+                {
+                    Console.WriteLine(
+                        "Saliendo del sistema..."
+                    );
+                }
+                else
+                {
+                    Console.WriteLine(
+                        "Opcion no valida."
+                    );
+                }
+
+            } while (opcion != 5);
+        }
+    }
+}
